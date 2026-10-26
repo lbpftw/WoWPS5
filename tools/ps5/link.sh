@@ -54,8 +54,12 @@ libs=("$build/lib/libimgui.a" "$build/lib/liblua51.a" "$build/lib/libstorm.a"
       "$build/lib/libwowee_ps4_crypto.a"
       "$build/lib/libwowee_ps5_vulkan.a")
 
+# Mesa's dispatch tables reference every entry point weakly and fall back to
+# the common implementation when one is NULL. Those references must resolve to
+# 0 here, not become imports: the converter refuses an import no stub exports.
+# (LLD 19+; older LLD puts them in the dynamic symbol table.)
 "$sdk/bin/prospero-lld" "${radv_linker_script[@]}" --eh-frame-hdr "${radv_link_flags[@]}" \
-    --version-script "$native/app-symbols.map" --exclude-libs=ALL \
+    -z nodynamic-undefined-weak --version-script "$native/app-symbols.map" --exclude-libs=ALL \
     -e _start -o "$work/llvm-pie.elf" "$root/ps5/wowee-ps5.ld" \
     "$work/obj/app_crt.o" "$work/obj/app_cpp_runtime.o" \
     --whole-archive "$build/lib/libwowee.a" --no-whole-archive \

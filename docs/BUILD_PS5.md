@@ -47,8 +47,12 @@ configuring and linking, and pass
 
 ## 2. Host packages
 
-- Compilers and build tools: `clang` and `lld` (LLVM 18 or newer; developed with clang 22), `llvm-ar`,
-  `cmake`, `ninja`, `make`, `python3`, `zip`.
+- Compilers and build tools: `clang` (LLVM 18 or newer; developed with clang 22), `lld` **19 or newer**
+  (older LLD exports Mesa's weak entry points as imports the converter refuses), `llvm-ar`,
+  clang's compiler-rt builtins (Ubuntu: `libclang-rt-18-dev`), `cmake`, `ninja`, `make`, `python3`, `zip`.
+  With clang 18 and a newer LLD side by side, point the SDK's `prospero-lld` at it through
+  `LLVM_CONFIG`: a script that prints a bin directory holding the newer `ld.lld` for `--bindir`
+  (and the clang 18 tools beside it) and runs `llvm-config-18` otherwise.
 - For Mesa/RADV (Fedora names): `meson glslang ccache clang-devel
   spirv-llvm-translator-devel spirv-tools-devel libclc-devel python3-mako
   python3-markupsafe python3-pyyaml python3-packaging bison flex`.
@@ -67,6 +71,7 @@ bash tools/build-radv.sh release            # RADV -> .deps/native/radv-release/
 mkdir -p build/host && clang++ -std=c++20 -O2 -I .deps/native/zlib/root/usr/include \
     tooling/native/{native_app_builder,self_container,elf_object,sce_module_writer}.cpp \
     "$(find .deps/native/zlib/root -name libz.a)" -o build/host/ps5-native-tool
+bash tools/rebuild-libc.sh                  # the clean-room runtime/libc.prx package.sh stages (checked by hash)
 ```
 
 The scripts are not marked executable in that repository, hence `bash`.
