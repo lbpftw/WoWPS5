@@ -35,16 +35,25 @@ bool enterResourceRoot() {
         LOG_ERROR("PS4 package resource root must be absolute: ", configured);
         return false;
     }
+    // On the PS5 /app0/Data holds the user's MPQs: the package stages the
+    // expansion tables at the app root instead (tools/ps5/package.sh), where
+    // the data root and so ExpansionRegistry look for them.
+#if defined(WOWEE_PS5)
+#define WOWEE_EXPANSION_TABLES "expansions/wotlk/"
+#else
+#define WOWEE_EXPANSION_TABLES "Data/expansions/wotlk/"
+#endif
     static const char* const required[] = {
-        "Data/expansions/wotlk/expansion.json",
-        "Data/expansions/wotlk/opcodes.json",
-        "Data/expansions/wotlk/update_fields.json",
-        "Data/expansions/wotlk/dbc_layouts.json",
+        WOWEE_EXPANSION_TABLES "expansion.json",
+        WOWEE_EXPANSION_TABLES "opcodes.json",
+        WOWEE_EXPANSION_TABLES "update_fields.json",
+        WOWEE_EXPANSION_TABLES "dbc_layouts.json",
         "assets/shaders/m2.vert.spv", "assets/shaders/m2.frag.spv",
         "assets/shaders/terrain.vert.spv", "assets/shaders/terrain.frag.spv",
         "assets/shaders/character.vert.spv", "assets/shaders/character.frag.spv",
         "assets/shaders/wmo.vert.spv", "assets/shaders/wmo.frag.spv",
     };
+#undef WOWEE_EXPANSION_TABLES
     bool ready = true;
     for (const char* relative : required) {
         const std::string path = resolveRelativeAssetPath(relative);
