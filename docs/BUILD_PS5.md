@@ -29,7 +29,11 @@ git clone -b PS5 https://github.com/RafaelNGP/WoWPS5.git
 cd deps
 git clone https://github.com/mihawk-99/PS5_Vulkan.git     && git -C PS5_Vulkan checkout 3f3ee69
 git clone https://github.com/mihawk-99/PS5_PayloadSDK.git
-git clone https://github.com/mihawk-99/PS5_Mesa.git       && git -C PS5_Mesa checkout 0b2d6d1
+git clone https://github.com/mihawk-99/PS5_Mesa.git
+# PS5_Vulkan's scripts export pinned revisions of the SDK and Mesa forks that are
+# no longer on their default branches: fetch them by hash.
+git -C PS5_PayloadSDK fetch origin 95c08f27386fc698f6bbe21dde3030140a41d10b
+git -C PS5_Mesa fetch origin 0b2d6d1a61d9bbf89cf8beb88a696144f67c61f8
 # OpenOrbis's libSce* declarations (orbis/*.h): the PS5 exports the same pad, user,
 # audio, dialog, net and rtc functions. A sparse checkout of include/orbis is enough.
 git clone --filter=blob:none --sparse https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain.git
@@ -48,14 +52,24 @@ configuring and linking, and pass
 - For Mesa/RADV (Fedora names): `meson glslang ccache clang-devel
   spirv-llvm-translator-devel spirv-tools-devel libclc-devel python3-mako
   python3-markupsafe python3-pyyaml python3-packaging bison flex`.
+- Mesa needs **meson 1.4 or newer**. Ubuntu 24.04 ships 1.3; install a newer one
+  with `pip install 'meson>=1.4'`. Ubuntu 24.04 package names: `meson
+  glslang-tools libclang-18-dev llvm-18-dev libclc-18-dev
+  libllvmspirvlib-18-dev spirv-tools python3-mako python3-markupsafe flex rsync`.
 
 ## 3. Build the PS5 SDK and the RADV driver
 
 ```bash
 cd work/deps/PS5_Vulkan
-tools/setup-native-dependencies.sh     # payload SDK (pinned revision) + zlib -> .deps/native/
-tools/build-radv.sh release            # RADV -> .deps/native/radv-release/lib/libvulkan_radeon.ps5.a (~5 min)
+bash tools/setup-native-dependencies.sh     # payload SDK (pinned revision) + zlib -> .deps/native/
+bash tools/build-radv.sh release            # RADV -> .deps/native/radv-release/lib/libvulkan_radeon.ps5.a (~5 min)
+# The module converter and signer tools/ps5/link.sh runs (tools/build.sh builds it the same way):
+mkdir -p build/host && clang++ -std=c++20 -O2 -I .deps/native/zlib/root/usr/include \
+    tooling/native/{native_app_builder,self_container,elf_object,sce_module_writer}.cpp \
+    "$(find .deps/native/zlib/root -name libz.a)" -o build/host/ps5-native-tool
 ```
+
+The scripts are not marked executable in that repository, hence `bash`.
 
 **Fedora / Nobara:** the clang runtime builtins live under a per-target
 directory. If the link step later fails to find
